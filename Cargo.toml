@@ -1,0 +1,10 @@
+[package]
+name = "stringify"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+image = "0.23"
+palette = "0.6"
+rand = "0.8.5"
+
