@@ -3,12 +3,11 @@ use kmeans::kmeans;
 use std::path::Path;
 mod dither;
 mod kmeans;
-fn main() {
-    let image = load_image("juniper.jpg").expect("Failed to load image");
 
+fn main() {
     // let palette = kmeans(5, &image);
 
-    let palette: Vec<Rgb<u8>> = [
+    let palette = [
         Rgb([137, 111, 78]),
         Rgb([131, 159, 104]),
         Rgb([113, 121, 137]),
@@ -17,15 +16,22 @@ fn main() {
     ]
     .to_vec();
 
-    let dithered = dither::dither_image(&image, &palette);
-
-    dithered
-        .save("juniper_dithered.png")
-        .expect("Failed to save image");
+    process_src_image(&palette);
 }
 
-fn load_image(file_path: &str) -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>, image::ImageError> {
-    let path = Path::new(file_path);
+fn process_src_image(palette: &[Rgb<u8>]) {
+    let image = load_image().expect("Failed to load image");
+    let dithered = dither::dither_image(&image, palette);
+    save_image(&dithered, "dithered.png");
+}
+
+fn save_image(image: &ImageBuffer<Rgb<u8>, Vec<u8>>, name: &str) {
+    let path = format!("imgout/{}", name);
+    image.save(path).expect("Failed to save image");
+}
+
+fn load_image() -> Result<ImageBuffer<Rgb<u8>, Vec<u8>>, image::ImageError> {
+    let path = Path::new("imgsrc").read_dir()?.next().unwrap()?.path();
     let img = image::open(path)?;
     Ok(img.to_rgb8())
 }

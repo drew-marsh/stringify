@@ -1,6 +1,5 @@
-use image::Rgb;
-
 use image::ImageBuffer;
+use image::Rgb;
 
 pub(crate) fn dither_image(
     image: &ImageBuffer<Rgb<u8>, Vec<u8>>,
