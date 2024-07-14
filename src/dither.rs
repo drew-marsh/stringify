@@ -1,12 +1,11 @@
+use image::DynamicImage;
 use image::ImageBuffer;
 use image::Rgb;
 
-pub(crate) fn dither_image(
-    image: &ImageBuffer<Rgb<u8>, Vec<u8>>,
-    palette: &[Rgb<u8>],
-) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
-    let mut cloned_image = image.clone();
-    let (width, height) = cloned_image.dimensions();
+pub(crate) fn dither_image(image: &DynamicImage, palette: &[Rgb<u8>]) -> DynamicImage {
+    let mut cloned_image = image.clone().to_rgb8();
+    let width = cloned_image.width();
+    let height = cloned_image.height();
 
     for y in 0..height {
         for x in 0..width {
@@ -19,7 +18,7 @@ pub(crate) fn dither_image(
         }
     }
 
-    cloned_image
+    DynamicImage::ImageRgb8(cloned_image)
 }
 
 fn find_closest_color(pixel: Rgb<u8>, palette: &[Rgb<u8>]) -> Rgb<u8> {

@@ -33,9 +33,8 @@ fn main() {
     ]
     .to_vec();
 
-    let dithered = dither::dither_image(&scaled_img.to_rgb8(), &palette);
-    let dithered_image = DynamicImage::ImageRgb8(dithered);
-    save_output_image(&dithered_image, "dithered.png");
+    let dithered = dither::dither_image(&scaled_img, &palette);
+    save_output_image(&dithered, "dithered.png");
 
     // let palette = kmeans(5, &image);
 }
