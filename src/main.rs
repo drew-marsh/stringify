@@ -9,9 +9,9 @@ mod kmeans;
 fn main() {
     let src_img = load_src_image().expect("Failed to load image");
 
-    let board = Board::new(20, 20);
+    let board = Board::new(20, 300);
 
-    dbg!(board);
+    // dbg!(board);
 
     // let board_circumference = nail_count * nail_spacing_strixels;
 
