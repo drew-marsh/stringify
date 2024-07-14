@@ -6,9 +6,12 @@ use std::collections::HashMap;
 pub struct Board {
     width: u32,
     height: u32,
-    nails: Vec<(u32, u32)>,
-    paths: HashMap<((u32, u32), (u32, u32)), Vec<(u32, u32)>>,
+    nails: Vec<Nail>,
+    paths: HashMap<(Nail, Nail), Vec<(u32, u32)>>,
 }
+
+#[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
+struct Nail(u32, u32);
 
 impl Board {
     pub fn new(nail_spacing_pixels: u32, nail_count: u32) -> Self {
@@ -48,7 +51,7 @@ impl Board {
     }
 }
 
-fn place_nails(diameter: u32, nail_count: u32) -> Vec<(u32, u32)> {
+fn place_nails(diameter: u32, nail_count: u32) -> Vec<Nail> {
     let origin = (diameter / 2, diameter / 2);
     let spacing = 2.0 * std::f64::consts::PI / nail_count as f64;
 
@@ -58,14 +61,14 @@ fn place_nails(diameter: u32, nail_count: u32) -> Vec<(u32, u32)> {
                 as u32;
             let y = (origin.1 as f64 + (diameter as f64 / 2.0) * (spacing * i as f64).sin()).round()
                 as u32;
-            (x, y)
+            Nail(x, y)
         })
         .collect::<Vec<_>>();
 
     nails
 }
 
-fn precompute_paths(nails: &[(u32, u32)]) -> HashMap<((u32, u32), (u32, u32)), Vec<(u32, u32)>> {
+fn precompute_paths(nails: &[Nail]) -> HashMap<(Nail, Nail), Vec<(u32, u32)>> {
     let mut paths = HashMap::new();
 
     for i in 0..nails.len() {
@@ -82,8 +85,8 @@ fn precompute_paths(nails: &[(u32, u32)]) -> HashMap<((u32, u32), (u32, u32)), V
                 .map(|t| (t.0 as u32, t.1 as u32))
                 .collect::<Vec<_>>();
 
-            paths.insert((end, start), path.clone());
-            paths.insert((start, end), path);
+            paths.insert((start, end), path.clone());
+            paths.insert((end, start), path);
         }
     }
 
