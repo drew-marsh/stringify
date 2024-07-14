@@ -1,5 +1,5 @@
 use bresenham::Bresenham;
-use image::{ImageBuffer, Rgb};
+use image::{imageops::FilterType, DynamicImage};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -27,6 +27,16 @@ impl Board {
             nails,
             paths,
         }
+    }
+
+    pub fn scale_image(&self, img: &DynamicImage, filter: Option<FilterType>) -> DynamicImage {
+        let filter = if (filter.is_some()) {
+            filter.unwrap()
+        } else {
+            FilterType::Lanczos3
+        };
+
+        img.resize_to_fill(self.width, self.height, filter)
     }
 
     pub fn width(&self) -> u32 {
