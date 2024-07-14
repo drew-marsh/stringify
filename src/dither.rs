@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use image::DynamicImage;
+use image::GenericImageView;
 use image::ImageBuffer;
 use image::Rgb;
 
@@ -9,16 +12,43 @@ pub(crate) fn dither_image(image: &DynamicImage, palette: &[Rgb<u8>]) -> Dynamic
 
     for y in 0..height {
         for x in 0..width {
-            let pixel = *cloned_image.get_pixel(x, y);
-            let closest_color = find_closest_color(pixel, palette);
-            let quant_error = calculate_quantization_error(pixel, closest_color);
-            cloned_image.put_pixel(x, y, closest_color);
+            let pixel_color = *cloned_image.get_pixel(x, y);
+            let closest_color = find_closest_color(pixel_color, palette);
+            let quant_error = calculate_quantization_error(pixel_color, closest_color);
 
+            cloned_image.put_pixel(x, y, closest_color);
             distribute_error(&mut cloned_image, x, y, quant_error);
         }
     }
 
-    DynamicImage::ImageRgb8(cloned_image)
+    let dithered = DynamicImage::ImageRgb8(cloned_image);
+
+    dithered
+}
+
+pub(crate) fn get_color_masks(
+    dithered_image: &DynamicImage,
+    palette: &[Rgb<u8>],
+) -> HashMap<Rgb<u8>, Vec<Vec<bool>>> {
+    let rgb_image = dithered_image.to_rgb8();
+
+    let mut color_masks = HashMap::new();
+    let (width, height) = dithered_image.dimensions();
+
+    palette.iter().enumerate().for_each(|(i, color)| {
+        let mask: Vec<_> = vec![vec![false; height as usize]; width as usize];
+        color_masks.insert(*color, mask);
+    });
+
+    for y in 0..height {
+        for x in 0..width {
+            let pixel_color = *rgb_image.get_pixel(x, y);
+            let mask = color_masks.get_mut(&pixel_color).unwrap();
+            mask[x as usize][y as usize] = true;
+        }
+    }
+
+    color_masks
 }
 
 fn find_closest_color(pixel: Rgb<u8>, palette: &[Rgb<u8>]) -> Rgb<u8> {

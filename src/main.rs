@@ -6,22 +6,19 @@ use board::Board;
 mod dither;
 mod kmeans;
 
-use image::imageops::FilterType;
-use std::time::Instant;
-
 fn main() {
     let nail_spacing_pixels = 20;
-    let nail_count = 4;
+    let nail_count = 10;
 
     // load
-    // let src_img = load_src_image().expect("Failed to load image");
+    let src_img = load_src_image().expect("Failed to load image");
 
     // board
     let board = Board::new(nail_spacing_pixels, nail_count);
 
     // scale
-    // let scaled_img = board.scale_image(&src_img, None);
-    let scaled_img = image::open(Path::new("imgout/scaled.png")).expect("Failed to load image");
+    let scaled_img = board.scale_image(&src_img, None);
+    // let scaled_img = image::open(Path::new("imgout/scaled.png")).expect("Failed to load image");
 
     // dither
     let palette = [
@@ -36,7 +33,36 @@ fn main() {
     let dithered = dither::dither_image(&scaled_img, &palette);
     save_output_image(&dithered, "dithered.png");
 
+    // masks
+    let color_masks = dither::get_color_masks(&dithered, &palette);
+    save_mask_images(&color_masks, dithered);
+
     // let palette = kmeans(5, &image);
+}
+
+fn save_mask_images(
+    color_masks: &std::collections::HashMap<Rgb<u8>, Vec<Vec<bool>>>,
+    dithered: DynamicImage,
+) {
+    color_masks.iter().for_each(|(color, mask)| {
+        let mut img = ImageBuffer::new(dithered.width(), dithered.height());
+        for y in 0..dithered.height() {
+            for x in 0..dithered.width() {
+                let pixel_color = if mask[x as usize][y as usize] {
+                    *color
+                } else if *color == Rgb([255, 255, 255]) {
+                    Rgb([0, 0, 0])
+                } else {
+                    Rgb([255, 255, 255])
+                };
+                img.put_pixel(x, y, pixel_color);
+            }
+        }
+        save_output_image(
+            &DynamicImage::ImageRgb8(img),
+            &format!("mask_{}{}{}.png", color.0[0], color.0[1], color.0[2]),
+        );
+    });
 }
 
 fn save_output_image(image: &DynamicImage, name: &str) {
