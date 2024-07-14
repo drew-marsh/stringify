@@ -9,7 +9,7 @@ mod kmeans;
 fn main() {
     let src_img = load_src_image().expect("Failed to load image");
 
-    let board = Board::new(&src_img, 20, 20);
+    let board = Board::new(20, 20);
 
     dbg!(board);
 
