@@ -11,9 +11,10 @@ pub struct Board {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-struct Nail(u32, u32);
+pub struct Nail(u32, u32);
 
 impl Board {
+    // TODO use real measurements
     pub fn new(nail_spacing_pixels: u32, nail_count: u32) -> Self {
         assert!(nail_spacing_pixels > 0);
         assert!(nail_count > 1);
@@ -48,6 +49,14 @@ impl Board {
 
     pub fn height(&self) -> u32 {
         self.height
+    }
+
+    pub fn getNails(&self) -> &Vec<Nail> {
+        &self.nails
+    }
+
+    pub fn getPaths(&self) -> &HashMap<(Nail, Nail), Vec<(u32, u32)>> {
+        &self.paths
     }
 }
 

@@ -3,8 +3,10 @@ use kmeans::kmeans;
 use std::path::Path;
 mod board;
 use board::Board;
+mod artgenerator;
 mod dither;
 mod kmeans;
+mod util;
 
 fn main() {
     let nail_spacing_pixels = 20;

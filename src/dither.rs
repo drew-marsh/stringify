@@ -5,7 +5,9 @@ use image::GenericImageView;
 use image::ImageBuffer;
 use image::Rgb;
 
-pub(crate) fn dither_image(image: &DynamicImage, palette: &[Rgb<u8>]) -> DynamicImage {
+use crate::util::ColorPalette;
+
+pub(crate) fn dither_image(image: &DynamicImage, palette: ColorPalette) -> DynamicImage {
     let mut cloned_image = image.clone().to_rgb8();
     let width = cloned_image.width();
     let height = cloned_image.height();
@@ -28,7 +30,7 @@ pub(crate) fn dither_image(image: &DynamicImage, palette: &[Rgb<u8>]) -> Dynamic
 
 pub(crate) fn get_color_masks(
     dithered_image: &DynamicImage,
-    palette: &[Rgb<u8>],
+    palette: ColorPalette,
 ) -> HashMap<Rgb<u8>, Vec<Vec<bool>>> {
     let rgb_image = dithered_image.to_rgb8();
 
@@ -51,7 +53,7 @@ pub(crate) fn get_color_masks(
     color_masks
 }
 
-fn find_closest_color(pixel: Rgb<u8>, palette: &[Rgb<u8>]) -> Rgb<u8> {
+fn find_closest_color(pixel: Rgb<u8>, palette: ColorPalette) -> Rgb<u8> {
     let mut closest_color = palette[0];
     let mut min_distance = calculate_color_distance(pixel, closest_color);
 

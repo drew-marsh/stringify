@@ -1,6 +1,8 @@
 use image::{ImageBuffer, Rgb};
 use rand::Rng;
 
+use crate::util::ColorPalette;
+
 pub fn kmeans(k: usize, image: &ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<Rgb<u8>> {
     // Step 1: Initialize centroids randomly
     let mut centroids: Vec<Rgb<u8>> = Vec::new();
@@ -37,7 +39,7 @@ pub fn kmeans(k: usize, image: &ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<Rgb<u8>> {
 }
 
 fn assign_pixels_to_centroids(
-    centroids: &[Rgb<u8>],
+    centroids: ColorPalette,
     image: &ImageBuffer<Rgb<u8>, Vec<u8>>,
 ) -> Vec<usize> {
     let mut assignments = Vec::<usize>::new();
