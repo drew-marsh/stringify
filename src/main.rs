@@ -6,6 +6,7 @@ use board::Board;
 mod artgenerator;
 mod dither;
 mod kmeans;
+mod stringifier;
 mod util;
 
 fn main() {
