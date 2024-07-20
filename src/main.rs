@@ -1,13 +1,14 @@
 use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb};
-use kmeans::kmeans;
 use std::path::Path;
 mod board;
 use board::Board;
-mod artgenerator;
-mod dither;
-mod kmeans;
+mod art_generator;
+mod image_utils;
 mod stringifier;
 mod util;
+use image_utils::dither_image;
+use image_utils::get_color_masks;
+use image_utils::kmeans;
 
 fn main() {
     let nail_spacing_pixels = 20;
@@ -33,11 +34,11 @@ fn main() {
     ]
     .to_vec();
 
-    let dithered = dither::dither_image(&scaled_img, &palette);
+    let dithered = dither_image(&scaled_img, &palette);
     save_output_image(&dithered, "dithered.png");
 
     // masks
-    let color_masks = dither::get_color_masks(&dithered, &palette);
+    let color_masks = get_color_masks(&dithered, &palette);
     save_mask_images(&color_masks, dithered);
 
     // let palette = kmeans(5, &image);
