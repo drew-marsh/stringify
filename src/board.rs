@@ -13,7 +13,7 @@ pub struct Board {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
-pub struct Nail(u32, u32);
+pub struct Nail(pub u32, pub u32);
 
 impl Board {
     // TODO use real measurements
