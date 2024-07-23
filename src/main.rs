@@ -8,7 +8,6 @@ mod stringifier;
 mod util;
 use image_utils::dither_image;
 use image_utils::get_color_masks;
-use image_utils::kmeans;
 
 fn main() {
     let nail_spacing_pixels = 20;

@@ -36,7 +36,7 @@ impl Board {
     }
 
     pub fn scale_image(&self, img: &DynamicImage, filter: Option<FilterType>) -> DynamicImage {
-        let filter = if (filter.is_some()) {
+        let filter = if filter.is_some() {
             filter.unwrap()
         } else {
             FilterType::Lanczos3

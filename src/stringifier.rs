@@ -5,7 +5,7 @@ use crate::art_generator::ArtAlgo;
 use crate::board::NailNailPaths;
 use crate::{
     board::{Board, Nail},
-    image_utils::{dither_image, get_color_masks},
+    image_utils::{dither_image},
     util::ColorPalette,
 };
 
