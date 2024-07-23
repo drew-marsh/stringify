@@ -7,7 +7,7 @@ use crate::board::Nail;
 type NailPattern = Vec<(Rgb<u8>, Nail)>;
 
 pub(crate) trait ArtAlgo {
-    fn get_current_nails(&self) -> &HashMap<Rgb<u8>, Nail>;
+    fn current_nails(&self) -> &HashMap<Rgb<u8>, Nail>;
     fn choose_next_nail(&self) -> (Rgb<u8>, Nail);
 }
 
@@ -19,7 +19,7 @@ pub struct ArtGenerator {
 impl ArtGenerator {
     pub fn new(algo: Box<dyn ArtAlgo>) -> Self {
         let pattern: NailPattern = algo
-            .get_current_nails()
+            .current_nails()
             .iter()
             .map(|(color, nail)| (*color, *nail))
             .collect();
