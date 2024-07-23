@@ -1,13 +1,15 @@
 use bresenham::Bresenham;
 use image::{imageops::FilterType, DynamicImage};
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hash};
+
+pub(crate) type NailNailPaths = HashMap<Nail, HashMap<Nail, Vec<(u32, u32)>>>;
 
 #[derive(Debug)]
 pub struct Board {
     width: u32,
     height: u32,
     nails: Vec<Nail>,
-    paths: HashMap<(Nail, Nail), Vec<(u32, u32)>>,
+    paths: NailNailPaths,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
@@ -51,11 +53,11 @@ impl Board {
         self.height
     }
 
-    pub fn getNails(&self) -> &Vec<Nail> {
+    pub fn nails(&self) -> &Vec<Nail> {
         &self.nails
     }
 
-    pub fn getPaths(&self) -> &HashMap<(Nail, Nail), Vec<(u32, u32)>> {
+    pub fn paths(&self) -> &NailNailPaths {
         &self.paths
     }
 }
@@ -77,8 +79,37 @@ fn place_nails(diameter: u32, nail_count: u32) -> Vec<Nail> {
     nails
 }
 
-fn precompute_paths(nails: &[Nail]) -> HashMap<(Nail, Nail), Vec<(u32, u32)>> {
-    let mut paths = HashMap::new();
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_precompute_paths() {
+        let nails = vec![Nail(0, 0), Nail(0, 2), Nail(2, 0), Nail(2, 2)];
+
+        let paths = precompute_paths(&nails);
+
+        // Check the forward paths
+        assert_eq!(paths[&Nail(0, 0)][&Nail(0, 2)], vec![(0, 1)]);
+        assert_eq!(paths[&Nail(0, 0)][&Nail(2, 0)], vec![(1, 0)]);
+        assert_eq!(paths[&Nail(0, 0)][&Nail(2, 2)], vec![(1, 1)]);
+        assert_eq!(paths[&Nail(0, 2)][&Nail(2, 0)], vec![(1, 1)]);
+        assert_eq!(paths[&Nail(0, 2)][&Nail(2, 2)], vec![(1, 2)]);
+        assert_eq!(paths[&Nail(2, 0)][&Nail(2, 2)], vec![(2, 1)]);
+
+        // Check the reverse paths
+        assert_eq!(paths[&Nail(0, 2)][&Nail(0, 0)], vec![(0, 1)]);
+        assert_eq!(paths[&Nail(2, 0)][&Nail(0, 0)], vec![(1, 0)]);
+        assert_eq!(paths[&Nail(2, 2)][&Nail(0, 0)], vec![(1, 1)]);
+        assert_eq!(paths[&Nail(2, 0)][&Nail(0, 2)], vec![(1, 1)]);
+        assert_eq!(paths[&Nail(2, 2)][&Nail(0, 2)], vec![(1, 2)]);
+        assert_eq!(paths[&Nail(2, 2)][&Nail(2, 0)], vec![(2, 1)]);
+    }
+}
+
+fn precompute_paths(nails: &[Nail]) -> NailNailPaths {
+    // TODO account for nail size
+    let mut nail_nail_paths = HashMap::new();
 
     for i in 0..nails.len() {
         for j in (i + 1)..nails.len() {
@@ -90,16 +121,22 @@ fn precompute_paths(nails: &[Nail]) -> HashMap<(Nail, Nail), Vec<(u32, u32)>> {
                 (end.0 as isize, end.1 as isize),
             );
 
+            // skip the start point. Bresenham skips the end point automatically
             let path = bresenham
                 .map(|t| (t.0 as u32, t.1 as u32))
+                .into_iter()
+                .skip(1)
                 .collect::<Vec<_>>();
 
-            paths.insert((start, end), path.clone());
-            paths.insert((end, start), path);
+            let forward_paths = nail_nail_paths.entry(start).or_insert(HashMap::new());
+            forward_paths.insert(end, path.clone());
+
+            let reverse_paths = nail_nail_paths.entry(end).or_insert(HashMap::new());
+            reverse_paths.insert(start, path.clone());
         }
     }
 
-    paths
+    nail_nail_paths
 }
 
 // // not used yet
