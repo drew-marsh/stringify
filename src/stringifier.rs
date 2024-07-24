@@ -1,4 +1,5 @@
-use image::{DynamicImage, Rgb};
+use image::{DynamicImage, GenericImageView, Rgb};
+use palette::rgb;
 use std::collections::HashMap;
 
 use crate::art_generator::ArtAlgo;
@@ -11,9 +12,11 @@ use crate::{
 
 pub struct Stringifier {
     current_nails: HashMap<Rgb<u8>, Nail>,
-    remaining_paths: NailNailPaths,
-    current_image: image::ImageBuffer<Rgb<u8>, Vec<u8>>,
+    paths: NailNailPaths,
+    remaining_pixels: HashMap<Xy, Rgb<u8>>,
 }
+
+type Xy = (u32, u32);
 
 impl Stringifier {
     pub fn new(board: &Board, src_img: &DynamicImage, color_palette: ColorPalette) -> Self {
@@ -23,11 +26,28 @@ impl Stringifier {
         let current_nails =
             Stringifier::starting_nails(board.nails(), board.paths(), color_palette, &dithered_img);
 
+        let remaining_pixels = Stringifier::image_to_pixel_options(&dithered_img);
+
         Self {
             current_nails,
-            remaining_paths: board.paths().clone(),
-            current_image: dithered_img.to_rgb8(),
+            paths: board.paths().clone(),
+            remaining_pixels,
         }
+    }
+
+    fn image_to_pixel_options(image: &DynamicImage) -> HashMap<Xy, Rgb<u8>> {
+        let rgb_img = image.to_rgb8();
+        let mut pixels = HashMap::new();
+        let (width, height) = rgb_img.dimensions();
+
+        for x in 0..width {
+            for y in 0..height {
+                let pixel_color = rgb_img.get_pixel(x, y);
+                pixels.insert((x, y), *pixel_color);
+            }
+        }
+
+        pixels
     }
 
     fn starting_nails(
@@ -86,18 +106,24 @@ impl ArtAlgo for Stringifier {
     fn current_nails(&self) -> &HashMap<Rgb<u8>, Nail> {
         &self.current_nails
     }
-    fn choose_next_nail(&self) -> (Rgb<u8>, Nail) {
+
+    fn choose_next_nail(&mut self) -> (Rgb<u8>, Nail) {
         let mut best_path: Option<(Rgb<u8>, Nail)> = None;
         let mut max_match = 0;
 
         for (color, nail) in &self.current_nails {
-            let paths = self.remaining_paths.get(nail).unwrap();
+            let paths = self.paths.get(nail).unwrap();
             for (next_nail, path) in paths {
                 let mut match_count = 0;
                 for (x, y) in path {
-                    let pixel_color = self.current_image.get_pixel(*x, *y);
-                    if pixel_color == color {
-                        match_count += 1;
+                    let pixel_color = self.remaining_pixels.get(&(*x, *y));
+                    match pixel_color {
+                        Some(pixel_color) => {
+                            if pixel_color == color {
+                                match_count += 1;
+                            }
+                        }
+                        None => (),
                     }
                 }
                 if match_count > max_match {
@@ -113,15 +139,12 @@ impl ArtAlgo for Stringifier {
 
 #[cfg(test)]
 mod tests {
+    use image::DynamicImage;
     use image::RgbImage;
 
     use super::*;
 
-    fn create_mock_board() -> (
-        Vec<Nail>,
-        NailNailPaths,
-        image::ImageBuffer<Rgb<u8>, Vec<u8>>,
-    ) {
+    fn create_mock_board() -> (Vec<Nail>, NailNailPaths, DynamicImage) {
         let nails = vec![Nail(0, 0), Nail(0, 3), Nail(3, 0)];
         let mut paths = HashMap::new();
 
@@ -141,7 +164,7 @@ mod tests {
         paths.insert(Nail(0, 3), from03);
         paths.insert(Nail(3, 0), from30);
 
-        let img = RgbImage::from_fn(3, 3, |x, y| {
+        let img: DynamicImage = DynamicImage::ImageRgb8(RgbImage::from_fn(3, 3, |x, y| {
             if x < 2 {
                 Rgb([255, 255, 255])
             } else if y < 2 {
@@ -149,7 +172,7 @@ mod tests {
             } else {
                 Rgb([0, 0, 0])
             }
-        });
+        }));
 
         (nails, paths, img)
     }
@@ -161,10 +184,10 @@ mod tests {
 
         let current_nails = HashMap::from([(color, Nail(0, 0))]);
 
-        let stringifier = Stringifier {
+        let mut stringifier = Stringifier {
             current_nails,
-            remaining_paths: paths.clone(),
-            current_image: img.clone(),
+            paths: paths.clone(),
+            remaining_pixels: Stringifier::image_to_pixel_options(&img),
         };
 
         let next_nail = stringifier.choose_next_nail();
@@ -177,7 +200,7 @@ mod tests {
         let (nails, paths, img) = create_mock_board();
         let color = Rgb([255, 255, 255]);
 
-        let chosen_path = Stringifier::choose_path(&nails, &paths, &img, &color);
+        let chosen_path = Stringifier::choose_path(&nails, &paths, &img.to_rgb8(), &color);
 
         assert_eq!(chosen_path, Some((Nail(0, 0), Nail(0, 3))));
     }

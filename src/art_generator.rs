@@ -8,7 +8,7 @@ type NailPattern = Vec<(Rgb<u8>, Nail)>;
 
 pub(crate) trait ArtAlgo {
     fn current_nails(&self) -> &HashMap<Rgb<u8>, Nail>;
-    fn choose_next_nail(&self) -> (Rgb<u8>, Nail);
+    fn choose_next_nail(&mut self) -> (Rgb<u8>, Nail);
 }
 
 pub struct ArtGenerator {
