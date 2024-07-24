@@ -22,7 +22,7 @@ impl Board {
         assert!(nail_count > 1);
 
         let circumference = nail_spacing_pixels * nail_count;
-        let diameter = (circumference as f64 / std::f64::consts::PI).round() as u32;
+        let diameter = (circumference as f64 / std::f64::consts::PI).ceil() as u32;
 
         let nails = place_nails(diameter, nail_count);
         let paths = precompute_paths(&nails);
@@ -63,15 +63,14 @@ impl Board {
 }
 
 fn place_nails(diameter: u32, nail_count: u32) -> Vec<Nail> {
-    let origin = (diameter / 2, diameter / 2);
-    let spacing = 2.0 * std::f64::consts::PI / nail_count as f64;
+    let radius = (diameter - 1) as f64 / 2.0;
+    let origin = radius + 0.5;
+    let rad_spacing = 2.0 * std::f64::consts::PI / nail_count as f64;
 
     let nails = (0..nail_count)
         .map(|i| {
-            let x = (origin.0 as f64 + (diameter as f64 / 2.0) * (spacing * i as f64).cos()).round()
-                as u32;
-            let y = (origin.1 as f64 + (diameter as f64 / 2.0) * (spacing * i as f64).sin()).round()
-                as u32;
+            let x = (origin + (radius) * (rad_spacing * i as f64).cos()).floor() as u32;
+            let y = (origin + (radius) * (rad_spacing * i as f64).sin()).floor() as u32;
             Nail(x, y)
         })
         .collect::<Vec<_>>();
