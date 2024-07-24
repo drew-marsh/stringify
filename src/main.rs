@@ -1,5 +1,7 @@
+use art_generator::ArtGenerator;
 use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb};
 use std::path::Path;
+use stringifier::Stringifier;
 mod board;
 use board::Board;
 mod art_generator;
@@ -20,7 +22,7 @@ fn main() {
     let board = Board::new(nail_spacing_pixels, nail_count);
 
     // scale
-    let scaled_img = board.scale_image(&src_img, None);
+    // let scaled_img = board.scale_image(&src_img, None);
     // let scaled_img = image::open(Path::new("imgout/scaled.png")).expect("Failed to load image");
 
     // dither
@@ -33,12 +35,19 @@ fn main() {
     ]
     .to_vec();
 
-    let dithered = dither_image(&scaled_img, &palette);
-    save_output_image(&dithered, "dithered.png");
+    // let dithered = dither_image(&scaled_img, &palette);
+    // save_output_image(&dithered, "dithered.png");
 
     // masks
-    let color_masks = get_color_masks(&dithered, &palette);
-    save_mask_images(&color_masks, dithered);
+    // let color_masks = get_color_masks(&dithered, &palette);
+    // save_mask_images(&color_masks, dithered);
+
+    let algo = Stringifier::new(&board, &src_img, &palette);
+    let mut generator = ArtGenerator::new(Box::new(algo));
+    generator.step();
+    let pattern = generator.get_pattern();
+
+    println!("Pattern: {:?}", pattern);
 
     // let palette = kmeans(5, &image);
 }

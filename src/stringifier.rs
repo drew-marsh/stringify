@@ -179,7 +179,7 @@ mod tests {
         paths.insert(Nail(0, 3), from03);
         paths.insert(Nail(3, 0), from30);
 
-        let img: DynamicImage = DynamicImage::ImageRgb8(RgbImage::from_fn(3, 3, |x, y| {
+        let img: DynamicImage = DynamicImage::ImageRgb8(RgbImage::from_fn(4, 4, |x, y| {
             if x < 2 {
                 Rgb([255, 255, 255])
             } else if y < 2 {
