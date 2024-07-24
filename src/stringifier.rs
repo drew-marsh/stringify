@@ -1,11 +1,11 @@
-use image::{DynamicImage, GenericImageView, Rgb};
+use image::{DynamicImage, Rgb};
 use std::collections::HashMap;
 
 use crate::art_generator::ArtAlgo;
 use crate::board::NailNailPaths;
 use crate::{
     board::{Board, Nail},
-    image_utils::{dither_image},
+    image_utils::dither_image,
     util::ColorPalette,
 };
 
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn test_choose_next_nail() {
-        let (nails, paths, img) = create_mock_board();
+        let (_nails, paths, img) = create_mock_board();
         let color = Rgb([255, 255, 255]);
 
         let current_nails = HashMap::from([(color, Nail(0, 0))]);

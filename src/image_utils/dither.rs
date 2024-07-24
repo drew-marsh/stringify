@@ -37,7 +37,7 @@ pub(crate) fn get_color_masks(
     let mut color_masks = HashMap::new();
     let (width, height) = dithered_image.dimensions();
 
-    palette.iter().enumerate().for_each(|(i, color)| {
+    palette.iter().enumerate().for_each(|(_i, color)| {
         let mask: Vec<_> = vec![vec![false; height as usize]; width as usize];
         color_masks.insert(*color, mask);
     });

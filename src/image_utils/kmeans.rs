@@ -43,7 +43,7 @@ fn assign_pixels_to_centroids(
     image: &ImageBuffer<Rgb<u8>, Vec<u8>>,
 ) -> Vec<usize> {
     let mut assignments = Vec::<usize>::new();
-    for (i, pixel) in image.pixels().enumerate() {
+    for (_i, pixel) in image.pixels().enumerate() {
         let mut min_distance = u32::MAX;
         let mut closest_centroid = 0;
         for (j, centroid) in centroids.iter().enumerate() {

@@ -1,4 +1,4 @@
 mod dither;
 mod kmeans;
 
-pub use dither::*;
+pub(crate) use dither::*;
