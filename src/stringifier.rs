@@ -100,6 +100,13 @@ impl Stringifier {
         }
         chosen_path
     }
+
+    fn clear_path(&mut self, from_nail: Nail, to_nail: Nail) {
+        let path = self.paths.get(&from_nail).unwrap().get(&to_nail).unwrap();
+        for (x, y) in path {
+            self.remaining_pixels.remove(&(*x, *y));
+        }
+    }
 }
 
 impl ArtAlgo for Stringifier {
@@ -133,7 +140,11 @@ impl ArtAlgo for Stringifier {
             }
         }
 
-        best_path.unwrap()
+        let (color, next_nail) = best_path.unwrap();
+
+        self.clear_path(self.current_nails[&color], next_nail);
+
+        (color, next_nail)
     }
 }
 
@@ -144,6 +155,10 @@ mod tests {
 
     use super::*;
 
+    // NWWN
+    // WWWW
+    // GGBB
+    // NGBB
     fn create_mock_board() -> (Vec<Nail>, NailNailPaths, DynamicImage) {
         let nails = vec![Nail(0, 0), Nail(0, 3), Nail(3, 0)];
         let mut paths = HashMap::new();
