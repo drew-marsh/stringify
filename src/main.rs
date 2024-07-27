@@ -4,12 +4,11 @@ use std::path::Path;
 use stringifier::Stringifier;
 mod board;
 use board::Board;
+mod art_algo;
 mod art_generator;
 mod image_utils;
 mod stringifier;
 mod util;
-use image_utils::dither_image;
-use image_utils::get_color_masks;
 
 fn main() {
     let nail_spacing_pixels = 20;
@@ -43,7 +42,7 @@ fn main() {
     // save_mask_images(&color_masks, dithered);
 
     let algo = Stringifier::new(&board, &src_img, &palette);
-    let mut generator = ArtGenerator::new(Box::new(algo));
+    let mut generator = ArtGenerator::new(board, Box::new(algo));
     generator.step();
     let pattern = generator.get_pattern();
 

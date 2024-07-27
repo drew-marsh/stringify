@@ -2,12 +2,13 @@ use bresenham::Bresenham;
 use image::{imageops::FilterType, DynamicImage};
 use std::{collections::HashMap, hash::Hash};
 
+use crate::util::Dimensions;
+
 pub(crate) type NailNailPaths = HashMap<Nail, HashMap<Nail, Vec<(u32, u32)>>>;
 
 #[derive(Debug)]
 pub struct Board {
-    width: u32,
-    height: u32,
+    dimensions: Dimensions,
     nails: Vec<Nail>,
     paths: NailNailPaths,
 }
@@ -27,9 +28,10 @@ impl Board {
         let nails = place_nails(diameter, nail_count);
         let paths = precompute_paths(&nails);
 
+        let dimensions: Dimensions = Dimensions::new(diameter, diameter);
+
         Self {
-            width: diameter,
-            height: diameter,
+            dimensions,
             nails,
             paths,
         }
@@ -42,15 +44,11 @@ impl Board {
             FilterType::Lanczos3
         };
 
-        img.resize_to_fill(self.width, self.height, filter)
+        img.resize_to_fill(self.dimensions.width(), self.dimensions.height(), filter)
     }
 
-    pub fn width(&self) -> u32 {
-        self.width
-    }
-
-    pub fn height(&self) -> u32 {
-        self.height
+    pub fn dimensions(&self) -> &Dimensions {
+        &self.dimensions
     }
 
     pub fn nails(&self) -> &Vec<Nail> {

@@ -1,14 +1,12 @@
-use image::{DynamicImage, GenericImageView, Rgb};
-use palette::rgb;
-use std::collections::HashMap;
-
-use crate::art_generator::ArtAlgo;
+use crate::art_algo::ArtAlgo;
 use crate::board::NailNailPaths;
 use crate::{
     board::{Board, Nail},
     image_utils::dither_image,
     util::ColorPalette,
 };
+use image::{DynamicImage, GenericImageView, Rgb};
+use std::collections::HashMap;
 
 pub struct Stringifier {
     current_nails: HashMap<Rgb<u8>, Nail>,
