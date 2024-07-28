@@ -2,8 +2,7 @@ use image::{GenericImage, GenericImageView, Pixel, Rgb, Rgba};
 
 use crate::{
     art_algo::ArtAlgo,
-    board::{self, Board, Nail},
-    util::Dimensions,
+    board::{Board, Nail},
 };
 
 type NailPattern = Vec<(Rgb<u8>, Nail)>;
@@ -51,7 +50,7 @@ impl ArtGenerator {
             .unwrap();
 
         for (x, y) in path {
-            if (self.art.get_pixel(*x, *y) == Rgba([0, 0, 0, 0])) {
+            if self.art.get_pixel(*x, *y) == Rgba([0, 0, 0, 0]) {
                 self.art.put_pixel(*x, *y, color.to_rgba());
             }
         }

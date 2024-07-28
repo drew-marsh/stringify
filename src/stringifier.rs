@@ -169,21 +169,21 @@ mod tests {
 
         let mut from04 = HashMap::new();
         from04.insert(Nail(0, 0), vec![(0, 1), (0, 2), (0, 3)]);
-        from04.insert(Nail(4, 0), vec![(1, 1), (2, 2), (3, 3)]);
+        from04.insert(Nail(4, 0), vec![(1, 3), (2, 2), (3, 1)]);
 
         let mut from40 = HashMap::new();
         from40.insert(Nail(0, 0), vec![(1, 0), (2, 0), (3, 0)]);
-        from40.insert(Nail(0, 4), vec![(1, 1), (2, 2), (3, 3)]);
+        from40.insert(Nail(0, 4), vec![(1, 3), (2, 2), (3, 1)]);
 
         paths.insert(Nail(0, 0), from00);
         paths.insert(Nail(0, 4), from04);
         paths.insert(Nail(4, 0), from40);
 
-        let img: DynamicImage = DynamicImage::ImageRgb8(RgbImage::from_fn(4, 4, |x, y| {
-            if y < 3 {
+        let img: DynamicImage = DynamicImage::ImageRgb8(RgbImage::from_fn(5, 5, |x, y| {
+            if y < 2 {
                 return Rgb([255, 255, 255]);
             }
-            if x < 3 {
+            if x < 2 {
                 return Rgb([127, 127, 127]);
             }
             Rgb([0, 0, 0])
