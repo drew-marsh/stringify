@@ -115,7 +115,7 @@ impl ArtAlgo for Stringifier {
         &self.current_nails
     }
 
-    fn choose_next_nail(&mut self) -> (Rgb<u8>, Nail) {
+    fn choose_next_nail(&mut self) -> Option<(Rgb<u8>, Nail)> {
         let mut best_path: Option<(Rgb<u8>, Nail)> = None;
         let mut best_score = -(self.dimensions.width() as i32);
 
@@ -139,19 +139,19 @@ impl ArtAlgo for Stringifier {
 
                 let score = match_count - mismatch_count;
 
-                if score > best_score {
+                if match_count > 0 && score > best_score {
                     best_score = score;
                     best_path = Some((*color, *next_nail));
                 }
             }
         }
 
-        let (color, next_nail) = best_path.unwrap();
+        if let Some((color, next_nail)) = best_path {
+            self.clear_path(self.current_nails[&color], next_nail);
+            self.current_nails.insert(color, next_nail);
+        }
 
-        self.clear_path(self.current_nails[&color], next_nail);
-        self.current_nails.insert(color, next_nail);
-
-        (color, next_nail)
+        best_path
     }
 }
 
@@ -214,7 +214,7 @@ mod tests {
             dimensions: Dimensions::new(5, 5),
         };
 
-        let next_nail = stringifier.choose_next_nail();
+        let next_nail = stringifier.choose_next_nail().expect("No next nail found");
 
         assert_eq!(next_nail, (color, Nail(4, 0)));
     }
@@ -236,10 +236,10 @@ mod tests {
             dimensions: Dimensions::new(5, 5),
         };
 
-        let next_nail = stringifier.choose_next_nail();
+        let next_nail = stringifier.choose_next_nail().expect("no next nail found");
         assert_eq!(next_nail, (w, Nail(4, 0)));
 
-        let next_nail = stringifier.choose_next_nail();
+        let next_nail = stringifier.choose_next_nail().expect("no next nail found");
         assert_eq!(next_nail, (g, Nail(0, 4)));
     }
 

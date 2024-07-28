@@ -12,8 +12,8 @@ mod stringifier;
 mod util;
 
 fn main() {
-    let nail_spacing_pixels = 5;
-    let nail_count = 150;
+    let nail_spacing_pixels = 10;
+    let nail_count = 200;
     let steps = 5000;
 
     // load
@@ -37,6 +37,7 @@ fn main() {
 
     // let palette = kmeans(5, &src_img.to_rgb8());
 
+    // pikachu palette
     let palette = vec![
         Rgb([214, 186, 189]),
         Rgb([107, 96, 122]),
@@ -55,22 +56,22 @@ fn main() {
     let algo = Stringifier::new(&board, &src_img, &palette);
     let mut generator = ArtGenerator::new(board, Box::new(algo));
 
-    for step in 0..steps {
-        generator.step();
+    let mut step = 0;
+    while generator.step().is_some() {
         if step % 100 == 0 && step != 0 {
             println!("Step: {}", step);
             save_output_image(generator.art(), "art.png");
             std::thread::sleep(std::time::Duration::from_millis(10));
         }
+        step += 1;
     }
-
-    generator.step();
+    println!("Completed after {} steps", step);
 
     let pattern = generator.pattern();
     let art = generator.art();
     save_output_image(art, "art.png");
 
-    println!("Pattern: {:?}", pattern);
+    // println!("Pattern: {:?}", pattern);
 }
 
 fn save_mask_images(

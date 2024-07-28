@@ -33,10 +33,16 @@ impl ArtGenerator {
         }
     }
 
-    pub fn step(&mut self) -> (Rgb<u8>, Nail) {
+    pub fn step(&mut self) -> Option<(Rgb<u8>, Nail)> {
         // TODO get rid of this clone
         let current_nails = self.algo.current_nails().clone();
-        let (color, next_nail) = self.algo.choose_next_nail();
+        let nail_choice = self.algo.choose_next_nail();
+
+        if nail_choice.is_none() {
+            return None;
+        }
+
+        let (color, next_nail) = nail_choice.unwrap();
 
         self.pattern.push((color, next_nail));
 
@@ -55,7 +61,7 @@ impl ArtGenerator {
             }
         }
 
-        (color, next_nail)
+        nail_choice
     }
 
     pub fn pattern(&self) -> &NailPattern {
