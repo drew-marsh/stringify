@@ -1,5 +1,6 @@
 use crate::art_algo::ArtAlgo;
 use crate::board::NailNailPaths;
+use crate::util::Dimensions;
 use crate::{
     board::{Board, Nail},
     image_utils::dither_image,
@@ -12,6 +13,7 @@ pub struct Stringifier {
     current_nails: HashMap<Rgb<u8>, Nail>,
     paths: NailNailPaths,
     remaining_pixels: HashMap<Xy, Rgb<u8>>,
+    dimensions: Dimensions,
 }
 
 type Xy = (u32, u32);
@@ -30,6 +32,7 @@ impl Stringifier {
             current_nails,
             paths: board.paths().clone(),
             remaining_pixels,
+            dimensions: board.dimensions().clone(),
         }
     }
 
@@ -114,12 +117,13 @@ impl ArtAlgo for Stringifier {
 
     fn choose_next_nail(&mut self) -> (Rgb<u8>, Nail) {
         let mut best_path: Option<(Rgb<u8>, Nail)> = None;
-        let mut max_match = 0;
+        let mut best_score = -(self.dimensions.width() as i32);
 
         for (color, nail) in &self.current_nails {
             let paths = self.paths.get(nail).unwrap();
             for (next_nail, path) in paths {
                 let mut match_count = 0;
+                let mut mismatch_count = 0;
                 for (x, y) in path {
                     let pixel_color = self.remaining_pixels.get(&(*x, *y));
                     match pixel_color {
@@ -127,19 +131,23 @@ impl ArtAlgo for Stringifier {
                             match_count += 1;
                         }
                         Some(_) => {
-                            match_count -= 1;
+                            mismatch_count += 1;
                         }
                         None => (),
                     }
                 }
-                if match_count > max_match {
-                    max_match = match_count;
+
+                let score = match_count - mismatch_count;
+
+                if score > best_score {
+                    best_score = score;
                     best_path = Some((*color, *next_nail));
                 }
             }
         }
 
         let (color, next_nail) = best_path.unwrap();
+
         self.clear_path(self.current_nails[&color], next_nail);
         self.current_nails.insert(color, next_nail);
 
@@ -203,6 +211,7 @@ mod tests {
             current_nails,
             paths: paths.clone(),
             remaining_pixels: Stringifier::image_to_pixel_options(&img),
+            dimensions: Dimensions::new(5, 5),
         };
 
         let next_nail = stringifier.choose_next_nail();
@@ -218,14 +227,13 @@ mod tests {
         let g = Rgb([127, 127, 127]);
         let b = Rgb([0, 0, 0]);
 
-        let palette = vec![w, g, b];
-
         let current_nails = HashMap::from([(w, Nail(0, 0)), (g, Nail(0, 0)), (b, Nail(0, 0))]);
 
         let mut stringifier = Stringifier {
             current_nails,
             paths: paths.clone(),
             remaining_pixels: Stringifier::image_to_pixel_options(&img),
+            dimensions: Dimensions::new(5, 5),
         };
 
         let next_nail = stringifier.choose_next_nail();

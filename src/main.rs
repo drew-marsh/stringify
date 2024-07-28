@@ -1,5 +1,6 @@
 use art_generator::ArtGenerator;
 use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb};
+use image_utils::kmeans;
 use std::path::Path;
 use stringifier::Stringifier;
 mod board;
@@ -11,11 +12,12 @@ mod stringifier;
 mod util;
 
 fn main() {
-    let nail_spacing_pixels = 20;
-    let nail_count = 50;
+    let nail_spacing_pixels = 5;
+    let nail_count = 150;
+    let steps = 5000;
 
     // load
-    let src_img = load_src_image().expect("Failed to load image");
+    let src_img = load_src_image("pikachu.jpg").expect("Failed to load image");
 
     // board
     let board = Board::new(nail_spacing_pixels, nail_count);
@@ -24,15 +26,24 @@ fn main() {
     // let scaled_img = board.scale_image(&src_img, None);
     // let scaled_img = image::open(Path::new("imgout/scaled.png")).expect("Failed to load image");
 
-    // dither
-    let palette = [
-        Rgb([137, 111, 78]),
-        Rgb([131, 159, 104]),
-        Rgb([113, 121, 137]),
-        Rgb([255, 255, 255]),
-        Rgb([76, 82, 75]),
-    ]
-    .to_vec();
+    // let palette = [
+    //     Rgb([137, 111, 78]),
+    //     Rgb([131, 159, 104]),
+    //     Rgb([113, 121, 137]),
+    //     Rgb([255, 255, 255]),
+    //     Rgb([76, 82, 75]),
+    // ]
+    // .to_vec();
+
+    // let palette = kmeans(5, &src_img.to_rgb8());
+
+    let palette = vec![
+        Rgb([214, 186, 189]),
+        Rgb([107, 96, 122]),
+        Rgb([20, 9, 23]),
+        Rgb([183, 108, 57]),
+        Rgb([71, 45, 45]),
+    ];
 
     // let dithered = dither_image(&scaled_img, &palette);
     // save_output_image(&dithered, "dithered.png");
@@ -44,8 +55,13 @@ fn main() {
     let algo = Stringifier::new(&board, &src_img, &palette);
     let mut generator = ArtGenerator::new(board, Box::new(algo));
 
-    for _i in 0..500 {
+    for step in 0..steps {
         generator.step();
+        if step % 100 == 0 && step != 0 {
+            println!("Step: {}", step);
+            save_output_image(generator.art(), "art.png");
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
     }
 
     generator.step();
@@ -55,8 +71,6 @@ fn main() {
     save_output_image(art, "art.png");
 
     println!("Pattern: {:?}", pattern);
-
-    // let palette = kmeans(5, &image);
 }
 
 fn save_mask_images(
@@ -89,8 +103,8 @@ fn save_output_image(image: &DynamicImage, name: &str) {
     image.save(path).expect("Failed to save image");
 }
 
-fn load_src_image() -> Result<DynamicImage, image::ImageError> {
-    let path = Path::new("imgsrc").read_dir()?.next().unwrap()?.path();
-    let img = image::open(path)?;
-    Ok(img)
+fn load_src_image(filename: &str) -> Result<DynamicImage, Box<dyn std::error::Error>> {
+    let file_path = Path::new("imgsrc").join(filename);
+    let image = image::open(file_path)?;
+    Ok(image)
 }
