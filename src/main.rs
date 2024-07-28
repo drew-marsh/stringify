@@ -12,7 +12,7 @@ mod util;
 
 fn main() {
     let nail_spacing_pixels = 20;
-    let nail_count = 10;
+    let nail_count = 50;
 
     // load
     let src_img = load_src_image().expect("Failed to load image");
@@ -43,8 +43,16 @@ fn main() {
 
     let algo = Stringifier::new(&board, &src_img, &palette);
     let mut generator = ArtGenerator::new(board, Box::new(algo));
+
+    for _i in 0..500 {
+        generator.step();
+    }
+
     generator.step();
-    let pattern = generator.get_pattern();
+
+    let pattern = generator.pattern();
+    let art = generator.art();
+    save_output_image(art, "art.png");
 
     println!("Pattern: {:?}", pattern);
 

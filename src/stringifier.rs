@@ -123,10 +123,11 @@ impl ArtAlgo for Stringifier {
                 for (x, y) in path {
                     let pixel_color = self.remaining_pixels.get(&(*x, *y));
                     match pixel_color {
-                        Some(pixel_color) => {
-                            if pixel_color == color {
-                                match_count += 1;
-                            }
+                        Some(pixel_color) if pixel_color == color => {
+                            match_count += 1;
+                        }
+                        Some(_) => {
+                            match_count -= 1;
                         }
                         None => (),
                     }
@@ -139,8 +140,8 @@ impl ArtAlgo for Stringifier {
         }
 
         let (color, next_nail) = best_path.unwrap();
-
         self.clear_path(self.current_nails[&color], next_nail);
+        self.current_nails.insert(color, next_nail);
 
         (color, next_nail)
     }
@@ -153,38 +154,39 @@ mod tests {
 
     use super::*;
 
-    // NWWN
-    // WWWW
-    // GGBB
-    // NGBB
+    // NWWWN
+    // W  W
+    // G B
+    // GG
+    // N
     fn create_mock_board() -> (Vec<Nail>, NailNailPaths, DynamicImage) {
-        let nails = vec![Nail(0, 0), Nail(0, 3), Nail(3, 0)];
+        let nails = vec![Nail(0, 0), Nail(0, 4), Nail(4, 0)];
         let mut paths = HashMap::new();
 
         let mut from00 = HashMap::new();
-        from00.insert(Nail(0, 3), vec![(0, 1), (0, 2)]);
-        from00.insert(Nail(3, 0), vec![(1, 0), (2, 0)]);
+        from00.insert(Nail(0, 4), vec![(0, 1), (0, 2), (0, 3)]);
+        from00.insert(Nail(4, 0), vec![(1, 0), (2, 0), (3, 0)]);
 
-        let mut from03 = HashMap::new();
-        from03.insert(Nail(0, 0), vec![(0, 1), (0, 2)]);
-        from03.insert(Nail(3, 0), vec![(1, 1), (2, 2)]);
+        let mut from04 = HashMap::new();
+        from04.insert(Nail(0, 0), vec![(0, 1), (0, 2), (0, 3)]);
+        from04.insert(Nail(4, 0), vec![(1, 1), (2, 2), (3, 3)]);
 
-        let mut from30 = HashMap::new();
-        from30.insert(Nail(0, 0), vec![(1, 0), (2, 0)]);
-        from30.insert(Nail(0, 3), vec![(1, 1), (2, 2)]);
+        let mut from40 = HashMap::new();
+        from40.insert(Nail(0, 0), vec![(1, 0), (2, 0), (3, 0)]);
+        from40.insert(Nail(0, 4), vec![(1, 1), (2, 2), (3, 3)]);
 
         paths.insert(Nail(0, 0), from00);
-        paths.insert(Nail(0, 3), from03);
-        paths.insert(Nail(3, 0), from30);
+        paths.insert(Nail(0, 4), from04);
+        paths.insert(Nail(4, 0), from40);
 
         let img: DynamicImage = DynamicImage::ImageRgb8(RgbImage::from_fn(4, 4, |x, y| {
-            if x < 2 {
-                Rgb([255, 255, 255])
-            } else if y < 2 {
-                Rgb([127, 127, 127])
-            } else {
-                Rgb([0, 0, 0])
+            if y < 3 {
+                return Rgb([255, 255, 255]);
             }
+            if x < 3 {
+                return Rgb([127, 127, 127]);
+            }
+            Rgb([0, 0, 0])
         }));
 
         (nails, paths, img)
@@ -205,7 +207,32 @@ mod tests {
 
         let next_nail = stringifier.choose_next_nail();
 
-        assert_eq!(next_nail, (color, Nail(0, 3)));
+        assert_eq!(next_nail, (color, Nail(4, 0)));
+    }
+
+    #[test]
+    fn choose_two_nails() {
+        let (_nails, paths, img) = create_mock_board();
+
+        let w = Rgb([255, 255, 255]);
+        let g = Rgb([127, 127, 127]);
+        let b = Rgb([0, 0, 0]);
+
+        let palette = vec![w, g, b];
+
+        let current_nails = HashMap::from([(w, Nail(0, 0)), (g, Nail(0, 0)), (b, Nail(0, 0))]);
+
+        let mut stringifier = Stringifier {
+            current_nails,
+            paths: paths.clone(),
+            remaining_pixels: Stringifier::image_to_pixel_options(&img),
+        };
+
+        let next_nail = stringifier.choose_next_nail();
+        assert_eq!(next_nail, (w, Nail(4, 0)));
+
+        let next_nail = stringifier.choose_next_nail();
+        assert_eq!(next_nail, (g, Nail(0, 4)));
     }
 
     #[test]
@@ -215,6 +242,6 @@ mod tests {
 
         let chosen_path = Stringifier::choose_path(&nails, &paths, &img.to_rgb8(), &color);
 
-        assert_eq!(chosen_path, Some((Nail(0, 0), Nail(0, 3))));
+        assert_eq!(chosen_path, Some((Nail(0, 0), Nail(4, 0))));
     }
 }

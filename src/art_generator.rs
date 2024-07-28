@@ -1,8 +1,9 @@
-use image::Rgb;
+use image::{GenericImage, GenericImageView, Pixel, Rgb, Rgba};
 
 use crate::{
     art_algo::ArtAlgo,
-    board::{Board, Nail},
+    board::{self, Board, Nail},
+    util::Dimensions,
 };
 
 type NailPattern = Vec<(Rgb<u8>, Nail)>;
@@ -11,6 +12,7 @@ pub struct ArtGenerator {
     board: Board,
     algo: Box<dyn ArtAlgo>,
     pattern: NailPattern,
+    art: image::DynamicImage,
 }
 
 impl ArtGenerator {
@@ -21,20 +23,51 @@ impl ArtGenerator {
             .map(|(color, nail)| (*color, *nail))
             .collect();
 
+        let art =
+            image::DynamicImage::new_rgba8(board.dimensions().width(), board.dimensions().height());
+
         Self {
             board,
             algo,
             pattern,
+            art,
         }
     }
 
     pub fn step(&mut self) -> (Rgb<u8>, Nail) {
-        let (color, nail) = self.algo.choose_next_nail();
-        self.pattern.push((color, nail));
-        (color, nail)
+        // TODO get rid of this clone
+        let current_nails = self.algo.current_nails().clone();
+        let (color, next_nail) = self.algo.choose_next_nail();
+
+        self.pattern.push((color, next_nail));
+
+        let last_nail = *current_nails.get(&color).unwrap();
+        let path = self
+            .board
+            .paths()
+            .get(&last_nail)
+            .unwrap()
+            .get(&next_nail)
+            .unwrap();
+
+        for (x, y) in path {
+            if (self.art.get_pixel(*x, *y) == Rgba([0, 0, 0, 0])) {
+                self.art.put_pixel(*x, *y, color.to_rgba());
+            }
+        }
+
+        (color, next_nail)
     }
 
-    pub fn get_pattern(&self) -> &NailPattern {
+    pub fn pattern(&self) -> &NailPattern {
         &self.pattern
+    }
+
+    pub fn art(&self) -> &image::DynamicImage {
+        &self.art
+    }
+
+    pub fn board(&self) -> &Board {
+        &self.board
     }
 }
