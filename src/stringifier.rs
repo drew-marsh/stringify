@@ -1,4 +1,4 @@
-use crate::art_algo::ArtAlgo;
+use crate::art_algo::{ArtAlgo, StrandPositions};
 use crate::board::NailNailPaths;
 use crate::util::Dimensions;
 use crate::{
@@ -10,7 +10,7 @@ use image::{DynamicImage, GenericImageView, Rgb};
 use std::collections::HashMap;
 
 pub struct Stringifier {
-    current_nails: HashMap<Rgb<u8>, Nail>,
+    initial_nails: HashMap<Rgb<u8>, Nail>,
     paths: NailNailPaths,
     remaining_pixels: HashMap<Xy, Rgb<u8>>,
     dimensions: Dimensions,
@@ -23,13 +23,13 @@ impl Stringifier {
         let scaled_img = board.scale_image(src_img, None);
         let dithered_img = dither_image(&scaled_img, color_palette);
 
-        let current_nails =
+        let initial_nails =
             Stringifier::starting_nails(board.nails(), board.paths(), color_palette, &dithered_img);
 
         let remaining_pixels = Stringifier::image_to_pixel_options(&dithered_img);
 
         Self {
-            current_nails,
+            initial_nails,
             paths: board.paths().clone(),
             remaining_pixels,
             dimensions: board.dimensions().clone(),
@@ -111,15 +111,15 @@ impl Stringifier {
 }
 
 impl ArtAlgo for Stringifier {
-    fn current_nails(&self) -> &HashMap<Rgb<u8>, Nail> {
-        &self.current_nails
+    fn initial_nails(&self) -> HashMap<Rgb<u8>, Nail> {
+        self.initial_nails.clone()
     }
 
-    fn choose_next_nail(&mut self) -> Option<(Rgb<u8>, Nail)> {
-        let mut best_path: Option<(Rgb<u8>, Nail)> = None;
+    fn next_nail(&mut self, nails: &StrandPositions) -> Option<(Rgb<u8>, Nail)> {
+        let mut best_move: Option<(Rgb<u8>, Nail)> = None;
         let mut best_score = -(self.dimensions.width() as i32);
 
-        for (color, nail) in &self.current_nails {
+        for (color, nail) in nails {
             let paths = self.paths.get(nail).unwrap();
             for (next_nail, path) in paths {
                 let mut match_count = 0;
@@ -141,17 +141,16 @@ impl ArtAlgo for Stringifier {
 
                 if match_count > 0 && score > best_score {
                     best_score = score;
-                    best_path = Some((*color, *next_nail));
+                    best_move = Some((*color, *next_nail));
                 }
             }
         }
 
-        if let Some((color, next_nail)) = best_path {
-            self.clear_path(self.current_nails[&color], next_nail);
-            self.current_nails.insert(color, next_nail);
+        if let Some((color, next_nail)) = best_move {
+            self.clear_path(nails[&color], next_nail);
         }
 
-        best_path
+        best_move
     }
 }
 
@@ -208,13 +207,15 @@ mod tests {
         let current_nails = HashMap::from([(color, Nail(0, 0))]);
 
         let mut stringifier = Stringifier {
-            current_nails,
+            initial_nails: current_nails.clone(),
             paths: paths.clone(),
             remaining_pixels: Stringifier::image_to_pixel_options(&img),
             dimensions: Dimensions::new(5, 5),
         };
 
-        let next_nail = stringifier.choose_next_nail().expect("No next nail found");
+        let next_nail = stringifier
+            .next_nail(&current_nails)
+            .expect("No next nail found");
 
         assert_eq!(next_nail, (color, Nail(4, 0)));
     }
@@ -227,19 +228,25 @@ mod tests {
         let g = Rgb([127, 127, 127]);
         let b = Rgb([0, 0, 0]);
 
-        let current_nails = HashMap::from([(w, Nail(0, 0)), (g, Nail(0, 0)), (b, Nail(0, 0))]);
+        let mut current_nails = HashMap::from([(w, Nail(0, 0)), (g, Nail(0, 0)), (b, Nail(0, 0))]);
 
         let mut stringifier = Stringifier {
-            current_nails,
+            initial_nails: current_nails.clone(),
             paths: paths.clone(),
             remaining_pixels: Stringifier::image_to_pixel_options(&img),
             dimensions: Dimensions::new(5, 5),
         };
 
-        let next_nail = stringifier.choose_next_nail().expect("no next nail found");
+        let next_nail = stringifier
+            .next_nail(&current_nails)
+            .expect("no next nail found");
         assert_eq!(next_nail, (w, Nail(4, 0)));
 
-        let next_nail = stringifier.choose_next_nail().expect("no next nail found");
+        current_nails.insert(next_nail.0, next_nail.1);
+
+        let next_nail = stringifier
+            .next_nail(&current_nails)
+            .expect("no next nail found");
         assert_eq!(next_nail, (g, Nail(0, 4)));
     }
 
