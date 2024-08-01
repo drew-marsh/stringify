@@ -127,52 +127,52 @@ impl ArtAlgo for Stringifier {
 
         let handles: Vec<_> = nails
             .iter()
-            .map(|(color, nail)| {
-                let best_move = Arc::clone(&best_move);
-                let best_score = Arc::clone(&best_score);
+            .flat_map(|(color, nail)| {
                 let paths = self.paths.get(nail).unwrap().clone();
                 let color = color.clone();
-                let remaining_pixels = Arc::clone(&self.remaining_pixels);
 
-                thread::spawn(move || {
-                    let remaining_pixels = remaining_pixels.read().unwrap();
-                    let mut local_best_move = None;
-                    let mut local_best_score = worst_possible_score;
+                paths
+                    .iter()
+                    .map(|(next_nail, path)| {
+                        let remaining_pixels = Arc::clone(&self.remaining_pixels);
+                        let path = path.clone();
+                        let next_nail = next_nail.clone();
 
-                    for (next_nail, path) in paths {
-                        let mut match_count = 0;
-                        let mut mismatch_count = 0;
+                        let best_move = Arc::clone(&best_move);
+                        let best_score = Arc::clone(&best_score);
 
-                        for (x, y) in path {
-                            let pixel_color = remaining_pixels.get(&(x, y));
+                        thread::spawn(move || {
+                            let remaining_pixels = remaining_pixels.read().unwrap();
 
-                            match pixel_color {
-                                Some(pixel_color) if *pixel_color == color => {
-                                    match_count += 1;
+                            let mut match_count = 0;
+                            let mut mismatch_count = 0;
+
+                            for (x, y) in path {
+                                let pixel_color = remaining_pixels.get(&(x, y));
+
+                                match pixel_color {
+                                    Some(pixel_color) if *pixel_color == color => {
+                                        match_count += 1;
+                                    }
+                                    Some(_) => {
+                                        mismatch_count += 1;
+                                    }
+                                    None => (),
                                 }
-                                Some(_) => {
-                                    mismatch_count += 1;
-                                }
-                                None => (),
                             }
-                        }
 
-                        let score = match_count - mismatch_count;
+                            let score = match_count - mismatch_count;
 
-                        if match_count > 0 && score > local_best_score {
-                            local_best_score = score;
-                            local_best_move = Some((color, next_nail));
-                        }
-                    }
+                            let mut best_move = best_move.lock().unwrap();
+                            let mut best_score = best_score.lock().unwrap();
 
-                    let mut best_move = best_move.lock().unwrap();
-                    let mut best_score = best_score.lock().unwrap();
-
-                    if local_best_score > *best_score {
-                        *best_score = local_best_score;
-                        *best_move = local_best_move;
-                    }
-                })
+                            if match_count > 0 && score > *best_score {
+                                *best_score = score;
+                                *best_move = Some((color, next_nail));
+                            }
+                        })
+                    })
+                    .collect::<Vec<_>>()
             })
             .collect();
 
