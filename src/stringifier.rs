@@ -13,7 +13,7 @@ use std::thread;
 
 pub struct Stringifier {
     initial_nails: HashMap<Rgb<u8>, Nail>,
-    paths: NailNailPaths,
+    paths: Arc<RwLock<NailNailPaths>>,
     remaining_pixels: Arc<RwLock<HashMap<Xy, Rgb<u8>>>>,
     dimensions: Dimensions,
 }
@@ -31,9 +31,12 @@ impl Stringifier {
         let remaining_pixels = Stringifier::image_to_pixel_options(&dithered_img);
         let remaining_pixels = Arc::new(RwLock::new(remaining_pixels));
 
+        let paths = board.paths().clone();
+        let paths = Arc::new(RwLock::new(paths));
+
         Self {
             initial_nails,
-            paths: board.paths().clone(),
+            paths,
             remaining_pixels,
             dimensions: board.dimensions().clone(),
         }
@@ -106,7 +109,9 @@ impl Stringifier {
     }
 
     fn clear_path(&mut self, from_nail: Nail, to_nail: Nail) {
-        let path = self.paths.get(&from_nail).unwrap().get(&to_nail).unwrap();
+        let paths = self.paths.read().unwrap();
+        let path = paths.get(&from_nail).unwrap().get(&to_nail).unwrap();
+
         for (x, y) in path {
             let mut rp = self.remaining_pixels.write().unwrap();
             rp.remove(&(*x, *y));
@@ -129,7 +134,8 @@ impl ArtAlgo for Stringifier {
         let handles: Vec<_> = nails
             .iter()
             .flat_map(|(color, nail)| {
-                let paths = self.paths.get(nail).unwrap();
+                let all_paths = self.paths.read().unwrap();
+                let paths = all_paths.get(nail).unwrap();
 
                 paths
                     .iter()
@@ -257,7 +263,7 @@ mod tests {
 
         let mut stringifier = Stringifier {
             initial_nails: current_nails.clone(),
-            paths: paths.clone(),
+            paths: Arc::new(RwLock::new(paths.clone())),
             remaining_pixels: Arc::new(RwLock::new(Stringifier::image_to_pixel_options(&img))),
             dimensions: Dimensions::new(5, 5),
         };
@@ -281,7 +287,7 @@ mod tests {
 
         let mut stringifier = Stringifier {
             initial_nails: current_nails.clone(),
-            paths: paths.clone(),
+            paths: Arc::new(RwLock::new(paths.clone())),
             remaining_pixels: Arc::new(RwLock::new(Stringifier::image_to_pixel_options(&img))),
             dimensions: Dimensions::new(5, 5),
         };
