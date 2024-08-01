@@ -178,24 +178,7 @@ fn try_move(
     thread::spawn(move || {
         let remaining_pixels = remaining_pixels.read().unwrap();
 
-        let mut match_count = 0;
-        let mut mismatch_count = 0;
-
-        for (x, y) in path {
-            let pixel_color = remaining_pixels.get(&(x, y));
-
-            match pixel_color {
-                Some(pixel_color) if *pixel_color == color => {
-                    match_count += 1;
-                }
-                Some(_) => {
-                    mismatch_count += 1;
-                }
-                None => (),
-            }
-        }
-
-        let score = match_count - mismatch_count;
+        let (match_count, score) = path_score(path, remaining_pixels, color);
 
         let mut best_move = best_move.lock().unwrap();
         let mut best_score = best_score.lock().unwrap();
@@ -205,6 +188,32 @@ fn try_move(
             *best_move = Some((color, next_nail));
         }
     })
+}
+
+fn path_score(
+    path: Vec<(u32, u32)>,
+    remaining_pixels: std::sync::RwLockReadGuard<HashMap<(u32, u32), Rgb<u8>>>,
+    color: Rgb<u8>,
+) -> (i32, i32) {
+    let mut match_count = 0;
+    let mut mismatch_count = 0;
+
+    for (x, y) in path {
+        let pixel_color = remaining_pixels.get(&(x, y));
+
+        match pixel_color {
+            Some(pixel_color) if *pixel_color == color => {
+                match_count += 1;
+            }
+            Some(_) => {
+                mismatch_count += 1;
+            }
+            None => (),
+        }
+    }
+
+    let score = match_count - mismatch_count;
+    (match_count, score)
 }
 
 #[cfg(test)]
