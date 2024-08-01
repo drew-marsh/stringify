@@ -12,8 +12,8 @@ mod stringifier;
 mod util;
 
 fn main() {
-    let nail_spacing_pixels = 4;
-    let nail_count = 200;
+    let nail_spacing_pixels = 3;
+    let nail_count = 70;
 
     // load
     let src_img = load_src_image("pikachu.jpg").expect("Failed to load image");
@@ -63,7 +63,7 @@ fn main() {
     while generator.step().is_some() {
         if step % 100 == 0 && step != 0 {
             println!("Step: {}", step);
-            save_output_image(generator.art(), "art.png");
+            // save_output_image(generator.art(), "art.png");
         }
         step += 1;
     }

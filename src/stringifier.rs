@@ -8,13 +8,13 @@ use crate::{
 };
 use image::{DynamicImage, GenericImageView, Rgb};
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 
 pub struct Stringifier {
     initial_nails: HashMap<Rgb<u8>, Nail>,
     paths: NailNailPaths,
-    remaining_pixels: HashMap<Xy, Rgb<u8>>,
+    remaining_pixels: Arc<RwLock<HashMap<Xy, Rgb<u8>>>>,
     dimensions: Dimensions,
 }
 
@@ -29,6 +29,7 @@ impl Stringifier {
             Stringifier::starting_nails(board.nails(), board.paths(), color_palette, &dithered_img);
 
         let remaining_pixels = Stringifier::image_to_pixel_options(&dithered_img);
+        let remaining_pixels = Arc::new(RwLock::new(remaining_pixels));
 
         Self {
             initial_nails,
@@ -107,7 +108,8 @@ impl Stringifier {
     fn clear_path(&mut self, from_nail: Nail, to_nail: Nail) {
         let path = self.paths.get(&from_nail).unwrap().get(&to_nail).unwrap();
         for (x, y) in path {
-            self.remaining_pixels.remove(&(*x, *y));
+            let mut rp = self.remaining_pixels.write().unwrap();
+            rp.remove(&(*x, *y));
         }
     }
 }
@@ -118,10 +120,10 @@ impl ArtAlgo for Stringifier {
     }
 
     fn next_nail(&mut self, nails: &StrandPositions) -> Option<(Rgb<u8>, Nail)> {
+        let worst_possible_score = -(self.dimensions.width() as i32);
+
         let best_move: Arc<Mutex<Option<(Rgb<u8>, Nail)>>> = Arc::new(Mutex::new(None));
-        let best_score = Arc::new(Mutex::new(-(self.dimensions.width() as i32)));
-        // TODO make self.remaining_pixels an Arc?
-        let remaining_pixels = Arc::new(self.remaining_pixels.clone());
+        let best_score = Arc::new(Mutex::new(worst_possible_score));
 
         let handles: Vec<_> = nails
             .iter()
@@ -129,13 +131,13 @@ impl ArtAlgo for Stringifier {
                 let best_move = Arc::clone(&best_move);
                 let best_score = Arc::clone(&best_score);
                 let paths = self.paths.get(nail).unwrap().clone();
-
                 let color = color.clone();
-                let remaining_pixels = Arc::clone(&remaining_pixels);
+                let remaining_pixels = Arc::clone(&self.remaining_pixels);
 
                 thread::spawn(move || {
+                    let remaining_pixels = remaining_pixels.read().unwrap();
                     let mut local_best_move = None;
-                    let mut local_best_score = *best_score.lock().unwrap();
+                    let mut local_best_score = worst_possible_score;
 
                     for (next_nail, path) in paths {
                         let mut match_count = 0;
@@ -143,6 +145,7 @@ impl ArtAlgo for Stringifier {
 
                         for (x, y) in path {
                             let pixel_color = remaining_pixels.get(&(x, y));
+
                             match pixel_color {
                                 Some(pixel_color) if *pixel_color == color => {
                                     match_count += 1;
@@ -244,7 +247,7 @@ mod tests {
         let mut stringifier = Stringifier {
             initial_nails: current_nails.clone(),
             paths: paths.clone(),
-            remaining_pixels: Stringifier::image_to_pixel_options(&img),
+            remaining_pixels: Arc::new(RwLock::new(Stringifier::image_to_pixel_options(&img))),
             dimensions: Dimensions::new(5, 5),
         };
 
@@ -268,7 +271,7 @@ mod tests {
         let mut stringifier = Stringifier {
             initial_nails: current_nails.clone(),
             paths: paths.clone(),
-            remaining_pixels: Stringifier::image_to_pixel_options(&img),
+            remaining_pixels: Arc::new(RwLock::new(Stringifier::image_to_pixel_options(&img))),
             dimensions: Dimensions::new(5, 5),
         };
 
