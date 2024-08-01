@@ -12,8 +12,8 @@ mod stringifier;
 mod util;
 
 fn main() {
-    let nail_spacing_pixels = 7;
-    let nail_count = 30;
+    let nail_spacing_pixels = 3;
+    let nail_count = 200;
 
     // load
     let src_img = load_src_image("pikachu.jpg").expect("Failed to load image");

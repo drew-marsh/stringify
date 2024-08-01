@@ -10,6 +10,7 @@ use image::{DynamicImage, GenericImageView, Rgb};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
+use threadpool::ThreadPool;
 
 pub struct Stringifier {
     initial_nails: HashMap<Rgb<u8>, Nail>,
@@ -140,6 +141,8 @@ impl ArtAlgo for Stringifier {
     }
 
     fn next_nail(&mut self, nails: &StrandPositions) -> Option<(Rgb<u8>, Nail)> {
+        let pool = ThreadPool::new(num_cpus::get());
+
         let worst_possible_score = -(self.dimensions.width() as i32);
         let best_move = None;
         let best_score = worst_possible_score;
@@ -155,6 +158,7 @@ impl ArtAlgo for Stringifier {
                     .iter()
                     .map(|(next_nail, path)| {
                         try_move(
+                            &pool,
                             Arc::clone(&self.remaining_pixels),
                             Arc::clone(path),
                             *color,
@@ -167,9 +171,7 @@ impl ArtAlgo for Stringifier {
             })
             .collect();
 
-        for handle in handles {
-            handle.join().unwrap();
-        }
+        pool.join();
 
         let best_move = best_move.lock().unwrap().clone();
 
@@ -182,14 +184,15 @@ impl ArtAlgo for Stringifier {
 }
 
 fn try_move(
+    pool: &ThreadPool,
     remaining_pixels: Arc<RwLock<HashMap<(u32, u32), Rgb<u8>>>>,
     path: Arc<Vec<(u32, u32)>>,
     color: Rgb<u8>,
     best_move: Arc<Mutex<Option<(Rgb<u8>, Nail)>>>,
     best_score: Arc<Mutex<i32>>,
     next_nail: Nail,
-) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
+) {
+    pool.execute(move || {
         let remaining_pixels = remaining_pixels.read().unwrap();
 
         let (match_count, score) = path_score(path, remaining_pixels, color);

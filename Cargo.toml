@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 bresenham = "0.1.1"
 image = "0.23"
+num_cpus = "1.16.0"
 palette = "0.6"
 rand = "0.8.5"
+threadpool = "1.8.1"
 
