@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use image::{GenericImage, GenericImageView, Pixel, Rgb, Rgba};
 
 use crate::{
@@ -8,14 +10,14 @@ use crate::{
 type NailPattern = Vec<(Rgb<u8>, Nail)>;
 
 pub struct ArtGenerator {
-    board: Board,
+    board: Rc<Board>,
     algo: Box<dyn ArtAlgo>,
     pattern: NailPattern,
     art: image::DynamicImage,
 }
 
 impl ArtGenerator {
-    pub fn new(board: Board, algo: Box<dyn ArtAlgo>) -> Self {
+    pub fn new(board: Rc<Board>, algo: Box<dyn ArtAlgo>) -> Self {
         let pattern: NailPattern = algo
             .current_nails()
             .iter()

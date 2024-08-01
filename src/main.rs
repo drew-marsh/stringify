@@ -1,7 +1,7 @@
 use art_generator::ArtGenerator;
 use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb};
 use image_utils::kmeans;
-use std::path::Path;
+use std::{path::Path, rc::Rc};
 use stringifier::Stringifier;
 mod board;
 use board::Board;
@@ -12,15 +12,14 @@ mod stringifier;
 mod util;
 
 fn main() {
-    let nail_spacing_pixels = 10;
+    let nail_spacing_pixels = 4;
     let nail_count = 200;
-    let steps = 5000;
 
     // load
     let src_img = load_src_image("pikachu.jpg").expect("Failed to load image");
 
     // board
-    let board = Board::new(nail_spacing_pixels, nail_count);
+    let board = Rc::new(Board::new(nail_spacing_pixels, nail_count));
 
     // scale
     // let scaled_img = board.scale_image(&src_img, None);
@@ -44,6 +43,8 @@ fn main() {
         Rgb([20, 9, 23]),
         Rgb([183, 108, 57]),
         Rgb([71, 45, 45]),
+        // cheeks
+        Rgb([150, 32, 18]),
     ];
 
     // let dithered = dither_image(&scaled_img, &palette);
@@ -54,14 +55,13 @@ fn main() {
     // save_mask_images(&color_masks, dithered);
 
     let algo = Stringifier::new(&board, &src_img, &palette);
-    let mut generator = ArtGenerator::new(board, Box::new(algo));
+    let mut generator = ArtGenerator::new(Rc::clone(&board), Box::new(algo));
 
     let mut step = 0;
     while generator.step().is_some() {
         if step % 100 == 0 && step != 0 {
             println!("Step: {}", step);
             save_output_image(generator.art(), "art.png");
-            std::thread::sleep(std::time::Duration::from_millis(10));
         }
         step += 1;
     }
