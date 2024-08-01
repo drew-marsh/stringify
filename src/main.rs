@@ -1,7 +1,7 @@
 use art_generator::ArtGenerator;
 use image::{DynamicImage, GenericImageView, ImageBuffer, Rgb};
 use image_utils::kmeans;
-use std::{path::Path, rc::Rc};
+use std::{path::Path, rc::Rc, time::Instant};
 use stringifier::Stringifier;
 mod board;
 use board::Board;
@@ -57,6 +57,8 @@ fn main() {
     let algo = Stringifier::new(&board, &src_img, &palette);
     let mut generator = ArtGenerator::new(Rc::clone(&board), Box::new(algo));
 
+    let start = Instant::now();
+
     let mut step = 0;
     while generator.step().is_some() {
         if step % 100 == 0 && step != 0 {
@@ -66,6 +68,7 @@ fn main() {
         step += 1;
     }
     println!("Completed after {} steps", step);
+    println!("Elapsed time: {:?}", start.elapsed());
 
     let pattern = generator.pattern();
     let art = generator.art();

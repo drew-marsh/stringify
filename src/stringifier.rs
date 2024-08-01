@@ -8,6 +8,8 @@ use crate::{
 };
 use image::{DynamicImage, GenericImageView, Rgb};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 pub struct Stringifier {
     initial_nails: HashMap<Rgb<u8>, Nail>,
@@ -116,35 +118,66 @@ impl ArtAlgo for Stringifier {
     }
 
     fn next_nail(&mut self, nails: &StrandPositions) -> Option<(Rgb<u8>, Nail)> {
-        let mut best_move: Option<(Rgb<u8>, Nail)> = None;
-        let mut best_score = -(self.dimensions.width() as i32);
+        let best_move: Arc<Mutex<Option<(Rgb<u8>, Nail)>>> = Arc::new(Mutex::new(None));
+        let best_score = Arc::new(Mutex::new(-(self.dimensions.width() as i32)));
+        // TODO make self.remaining_pixels an Arc?
+        let remaining_pixels = Arc::new(self.remaining_pixels.clone());
 
-        for (color, nail) in nails {
-            let paths = self.paths.get(nail).unwrap();
-            for (next_nail, path) in paths {
-                let mut match_count = 0;
-                let mut mismatch_count = 0;
-                for (x, y) in path {
-                    let pixel_color = self.remaining_pixels.get(&(*x, *y));
-                    match pixel_color {
-                        Some(pixel_color) if pixel_color == color => {
-                            match_count += 1;
+        let handles: Vec<_> = nails
+            .iter()
+            .map(|(color, nail)| {
+                let best_move = Arc::clone(&best_move);
+                let best_score = Arc::clone(&best_score);
+                let paths = self.paths.get(nail).unwrap().clone();
+
+                let color = color.clone();
+                let remaining_pixels = Arc::clone(&remaining_pixels);
+
+                thread::spawn(move || {
+                    let mut local_best_move = None;
+                    let mut local_best_score = *best_score.lock().unwrap();
+
+                    for (next_nail, path) in paths {
+                        let mut match_count = 0;
+                        let mut mismatch_count = 0;
+
+                        for (x, y) in path {
+                            let pixel_color = remaining_pixels.get(&(x, y));
+                            match pixel_color {
+                                Some(pixel_color) if *pixel_color == color => {
+                                    match_count += 1;
+                                }
+                                Some(_) => {
+                                    mismatch_count += 1;
+                                }
+                                None => (),
+                            }
                         }
-                        Some(_) => {
-                            mismatch_count += 1;
+
+                        let score = match_count - mismatch_count;
+
+                        if match_count > 0 && score > local_best_score {
+                            local_best_score = score;
+                            local_best_move = Some((color, next_nail));
                         }
-                        None => (),
                     }
-                }
 
-                let score = match_count - mismatch_count;
+                    let mut best_move = best_move.lock().unwrap();
+                    let mut best_score = best_score.lock().unwrap();
 
-                if match_count > 0 && score > best_score {
-                    best_score = score;
-                    best_move = Some((*color, *next_nail));
-                }
-            }
+                    if local_best_score > *best_score {
+                        *best_score = local_best_score;
+                        *best_move = local_best_move;
+                    }
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            handle.join().unwrap();
         }
+
+        let best_move = best_move.lock().unwrap().clone();
 
         if let Some((color, next_nail)) = best_move {
             self.clear_path(nails[&color], next_nail);
@@ -158,6 +191,8 @@ impl ArtAlgo for Stringifier {
 mod tests {
     use image::DynamicImage;
     use image::RgbImage;
+    use std::sync::{Arc, Mutex};
+    use std::thread;
 
     use super::*;
 

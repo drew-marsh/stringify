@@ -77,8 +77,4 @@ impl ArtGenerator {
     pub fn art(&self) -> &image::DynamicImage {
         &self.art
     }
-
-    pub fn board(&self) -> &Board {
-        &self.board
-    }
 }
