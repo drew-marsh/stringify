@@ -121,56 +121,27 @@ impl ArtAlgo for Stringifier {
 
     fn next_nail(&mut self, nails: &StrandPositions) -> Option<(Rgb<u8>, Nail)> {
         let worst_possible_score = -(self.dimensions.width() as i32);
-
-        let best_move: Arc<Mutex<Option<(Rgb<u8>, Nail)>>> = Arc::new(Mutex::new(None));
-        let best_score = Arc::new(Mutex::new(worst_possible_score));
+        let best_move = None;
+        let best_score = worst_possible_score;
+        let best_move: Arc<Mutex<Option<(Rgb<u8>, Nail)>>> = Arc::new(Mutex::new(best_move));
+        let best_score = Arc::new(Mutex::new(best_score));
 
         let handles: Vec<_> = nails
             .iter()
             .flat_map(|(color, nail)| {
-                let paths = self.paths.get(nail).unwrap().clone();
-                let color = color.clone();
+                let paths = self.paths.get(nail).unwrap();
 
                 paths
                     .iter()
                     .map(|(next_nail, path)| {
-                        let remaining_pixels = Arc::clone(&self.remaining_pixels);
-                        let path = path.clone();
-                        let next_nail = next_nail.clone();
-
-                        let best_move = Arc::clone(&best_move);
-                        let best_score = Arc::clone(&best_score);
-
-                        thread::spawn(move || {
-                            let remaining_pixels = remaining_pixels.read().unwrap();
-
-                            let mut match_count = 0;
-                            let mut mismatch_count = 0;
-
-                            for (x, y) in path {
-                                let pixel_color = remaining_pixels.get(&(x, y));
-
-                                match pixel_color {
-                                    Some(pixel_color) if *pixel_color == color => {
-                                        match_count += 1;
-                                    }
-                                    Some(_) => {
-                                        mismatch_count += 1;
-                                    }
-                                    None => (),
-                                }
-                            }
-
-                            let score = match_count - mismatch_count;
-
-                            let mut best_move = best_move.lock().unwrap();
-                            let mut best_score = best_score.lock().unwrap();
-
-                            if match_count > 0 && score > *best_score {
-                                *best_score = score;
-                                *best_move = Some((color, next_nail));
-                            }
-                        })
+                        try_move(
+                            Arc::clone(&self.remaining_pixels),
+                            path.clone(), // TODO avoid cloning this
+                            *color,
+                            Arc::clone(&best_move),
+                            Arc::clone(&best_score),
+                            *next_nail,
+                        )
                     })
                     .collect::<Vec<_>>()
             })
@@ -188,6 +159,46 @@ impl ArtAlgo for Stringifier {
 
         best_move
     }
+}
+
+fn try_move(
+    remaining_pixels: Arc<RwLock<HashMap<(u32, u32), Rgb<u8>>>>,
+    path: Vec<(u32, u32)>,
+    color: Rgb<u8>,
+    best_move: Arc<Mutex<Option<(Rgb<u8>, Nail)>>>,
+    best_score: Arc<Mutex<i32>>,
+    next_nail: Nail,
+) -> thread::JoinHandle<()> {
+    thread::spawn(move || {
+        let remaining_pixels = remaining_pixels.read().unwrap();
+
+        let mut match_count = 0;
+        let mut mismatch_count = 0;
+
+        for (x, y) in path {
+            let pixel_color = remaining_pixels.get(&(x, y));
+
+            match pixel_color {
+                Some(pixel_color) if *pixel_color == color => {
+                    match_count += 1;
+                }
+                Some(_) => {
+                    mismatch_count += 1;
+                }
+                None => (),
+            }
+        }
+
+        let score = match_count - mismatch_count;
+
+        let mut best_move = best_move.lock().unwrap();
+        let mut best_score = best_score.lock().unwrap();
+
+        if match_count > 0 && score > *best_score {
+            *best_score = score;
+            *best_move = Some((color, next_nail));
+        }
+    })
 }
 
 #[cfg(test)]
